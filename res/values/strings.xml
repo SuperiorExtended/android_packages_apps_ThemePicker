@@ -344,4 +344,6 @@
     [CHAR LIMIT=60].
     -->
     <string name="keyguard_quick_affordance_none_selected">None</string>
+    
+    <string name="system_icons">System icons</string>
 </resources>
