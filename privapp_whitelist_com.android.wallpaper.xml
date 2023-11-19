@@ -22,5 +22,6 @@
         <permission name="android.permission.READ_WALLPAPER_INTERNAL"/>
         <permission name="android.permission.SET_WALLPAPER_COMPONENT"/>
         <permission name="android.permission.WRITE_SECURE_SETTINGS"/>
+        <permission name="android.permission.CUSTOMIZE_SYSTEM_UI"/>
     </privapp-permissions>
 </permissions>
