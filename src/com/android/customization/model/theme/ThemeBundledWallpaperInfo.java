@@ -86,6 +86,7 @@ public class ThemeBundledWallpaperInfo extends WallpaperInfo {
     }
 
     private ThemeBundledWallpaperInfo(Parcel in) {
+        super(in);
         mPackageName = in.readString();
         mResName = in.readString();
         mCollectionId = in.readString();
@@ -136,13 +137,13 @@ public class ThemeBundledWallpaperInfo extends WallpaperInfo {
 
     @Override
     public void showPreview(Activity srcActivity, InlinePreviewIntentFactory factory,
-            int requestCode) {
+            int requestCode, boolean isAssetIdPresent) {
         try {
-            srcActivity.startActivityForResult(factory.newIntent(srcActivity, this), requestCode);
+            srcActivity.startActivityForResult(factory.newIntent(srcActivity, this,
+                    isAssetIdPresent), requestCode);
         } catch (ActivityNotFoundException |SecurityException e) {
             Log.e(TAG, "App isn't installed or ThemePicker doesn't have permission to launch", e);
         }
-
     }
 
     @Override
@@ -177,6 +178,7 @@ public class ThemeBundledWallpaperInfo extends WallpaperInfo {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
+        super.writeToParcel(dest, flags);
         dest.writeString(mPackageName);
         dest.writeString(mResName);
         dest.writeString(mCollectionId);

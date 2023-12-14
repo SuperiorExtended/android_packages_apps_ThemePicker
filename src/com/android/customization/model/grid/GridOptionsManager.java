@@ -15,33 +15,76 @@
  */
 package com.android.customization.model.grid;
 
-import android.os.AsyncTask;
+import android.content.Context;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
+import androidx.lifecycle.LiveData;
 
 import com.android.customization.model.CustomizationManager;
+import com.android.customization.module.CustomizationInjector;
 import com.android.customization.module.ThemesUserEventLogger;
+import com.android.wallpaper.R;
+import com.android.wallpaper.module.InjectorProvider;
+import com.android.wallpaper.util.PreviewUtils;
 
-import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * {@link CustomizationManager} for interfacing with the launcher to handle {@link GridOption}s.
  */
 public class GridOptionsManager implements CustomizationManager<GridOption> {
 
+    private static final ExecutorService sExecutorService = Executors.newSingleThreadExecutor();
+    private static final String TAG = "GridOptionsManager";
+
+    private static GridOptionsManager sGridOptionsManager;
+
     private final LauncherGridOptionsProvider mProvider;
     private final ThemesUserEventLogger mEventLogger;
+    private int mGridOptionSize = -1;
 
-    public GridOptionsManager(LauncherGridOptionsProvider provider, ThemesUserEventLogger logger) {
+    /** Returns the {@link GridOptionsManager} instance. */
+    public static GridOptionsManager getInstance(Context context) {
+        if (sGridOptionsManager == null) {
+            Context appContext = context.getApplicationContext();
+            CustomizationInjector injector = (CustomizationInjector) InjectorProvider.getInjector();
+            ThemesUserEventLogger eventLogger = (ThemesUserEventLogger) injector.getUserEventLogger(
+                    appContext);
+            sGridOptionsManager = new GridOptionsManager(
+                    new LauncherGridOptionsProvider(appContext,
+                            appContext.getString(R.string.grid_control_metadata_name)),
+                    eventLogger);
+        }
+        return sGridOptionsManager;
+    }
+
+    @VisibleForTesting
+    GridOptionsManager(LauncherGridOptionsProvider provider, ThemesUserEventLogger logger) {
         mProvider = provider;
         mEventLogger = logger;
     }
 
     @Override
     public boolean isAvailable() {
-        return mProvider.areGridsAvailable();
+        if (mGridOptionSize < 0) {
+            try {
+                mGridOptionSize = sExecutorService.submit(() -> {
+                    List<GridOption> gridOptions = mProvider.fetch(/* reload= */true);
+                    return gridOptions == null ? 0 : gridOptions.size();
+                }).get();
+            } catch (InterruptedException | ExecutionException e) {
+                Log.w(TAG, "could not get gridOptionSize", e);
+            }
+        }
+        return mGridOptionSize > 1 && mProvider.areGridsAvailable();
     }
 
     @Override
@@ -56,42 +99,36 @@ public class GridOptionsManager implements CustomizationManager<GridOption> {
     }
 
     @Override
-    public void fetchOptions(OptionsFetchedListener<GridOption> callback, boolean reload) {
-        new FetchTask(mProvider, callback).execute();
+    public void preview(GridOption option) {
+        mProvider.updateView();
     }
 
-    private static class FetchTask extends AsyncTask<Void, Void, List<GridOption>> {
-        private final LauncherGridOptionsProvider mProvider;
-        @Nullable private final OptionsFetchedListener<GridOption> mCallback;
-
-        private FetchTask(@NonNull LauncherGridOptionsProvider provider,
-                @Nullable OptionsFetchedListener<GridOption> callback) {
-            mCallback = callback;
-            mProvider = provider;
-        }
-
-        @Override
-        protected List<GridOption> doInBackground(Void[] params) {
-            return mProvider.fetch(false);
-        }
-
-        @Override
-        protected void onPostExecute(List<GridOption> gridOptions) {
-            if (mCallback != null) {
-                if (gridOptions != null && !gridOptions.isEmpty()) {
-                    mCallback.onOptionsLoaded(gridOptions);
-                } else {
-                    mCallback.onError(null);
+    @Override
+    public void fetchOptions(OptionsFetchedListener<GridOption> callback, boolean reload) {
+        sExecutorService.submit(() -> {
+            List<GridOption> gridOptions = mProvider.fetch(reload);
+            new Handler(Looper.getMainLooper()).post(() -> {
+                if (callback != null) {
+                    if (gridOptions != null && !gridOptions.isEmpty()) {
+                        callback.onOptionsLoaded(gridOptions);
+                    } else {
+                        callback.onError(null);
+                    }
                 }
-            }
-        }
+            });
+        });
+    }
 
-        @Override
-        protected void onCancelled() {
-            super.onCancelled();
-            if (mCallback != null) {
-                mCallback.onError(null);
-            }
-        }
+    /**
+     * Returns an observable that receives a new value each time that the grid options are changed.
+     */
+    public LiveData<Object> getOptionChangeObservable(@Nullable Handler handler) {
+        return mProvider.getOptionChangeObservable(handler);
+    }
+
+    /** Call through content provider API to render preview */
+    public void renderPreview(Bundle bundle, String gridName,
+            PreviewUtils.WorkspacePreviewCallback callback) {
+        mProvider.renderPreview(gridName, bundle, callback);
     }
 }

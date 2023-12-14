@@ -16,7 +16,6 @@
 package com.android.customization.model;
 
 import android.util.Log;
-import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 
@@ -72,6 +71,9 @@ public interface CustomizationManager<T extends CustomizationOption> {
      * Applies the given option into the system.
      */
     void apply(T option, Callback callback);
+
+    /** Preview the given option without committing the change. */
+    default void preview(T option) {}
 
     /**
      * Loads the available options for the type of Customization managed by this class, calling the

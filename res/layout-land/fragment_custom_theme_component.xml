@@ -45,7 +45,7 @@
         <View
             android:layout_width="1dp"
             android:layout_height="match_parent"
-            android:background="@color/divider_color"/>
+            android:background="?android:colorForeground"/>
         <LinearLayout
             android:id="@+id/options_section"
             android:layout_width="0dp"
@@ -62,7 +62,7 @@
                 android:layout_gravity="center"
                 android:layout_margin="10dp"
                 android:textAlignment="center"
-                android:textAppearance="@style/HeaderTextAppearance"/>
+                android:textAppearance="@style/TitleTextAppearance"/>
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/options_container"

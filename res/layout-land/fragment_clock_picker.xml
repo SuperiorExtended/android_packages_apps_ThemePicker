@@ -33,12 +33,12 @@
             android:layout_height="match_parent"
             android:orientation="horizontal">
 
-            <com.android.customization.widget.PreviewPager
+            <com.android.wallpaper.widget.PreviewPager
                 android:id="@+id/clock_preview_pager"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:background="@color/secondary_color"
+                android:background="?android:colorSecondary"
                 app:card_style="screen_aspect_ratio"/>
 
             <LinearLayout
@@ -86,7 +86,7 @@
             android:visibility="gone">
             <TextView
                 android:id="@+id/error_message"
-                style="@style/HeaderTextAppearance"
+                style="@style/TitleTextAppearance"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
